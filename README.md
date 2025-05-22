@@ -31,6 +31,22 @@ BoardFlow is a feature-rich, flexible board management platform designed to help
 - **Dark Mode Support**: Reduce eye strain with dark mode option
 - **Customizable Dashboard**: Personalize your view with the information that matters most
 
+## 🖼️ Screenshots
+
+### 🔹 Dashboard – Your Project Overview  
+Get a clear snapshot of active boards, tasks, and progress.
+
+![BoardFlow Dashboard](assets/dashboard.png)
+
+---
+
+### 🔹 Boards Index – Organize Projects Visually  
+Quickly access and manage all your boards with a clean layout.
+
+![BoardFlow Boards Index](assets/index.png)
+
+
+
 ## 🚀 Technology Stack
 
 ### Backend
