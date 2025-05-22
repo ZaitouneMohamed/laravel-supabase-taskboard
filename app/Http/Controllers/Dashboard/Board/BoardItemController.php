@@ -31,7 +31,6 @@ class BoardItemController extends Controller
 
         // Standard priorities
         $priorities = ['low', 'medium', 'high', 'urgent'];
-//return new BoardResource($board);
         return Inertia::render('Boards/Items/Create', [
             'board' => new BoardResource($board),
             'auth' => [
@@ -74,7 +73,7 @@ class BoardItemController extends Controller
         ]);
 
         // Record activity
-        $board->activities()->create([
+       /* $board->activities()->create([
             'user_id' => Auth::id(),
             'type' => 'item_created',
             'description' => 'created a new item',
@@ -82,10 +81,13 @@ class BoardItemController extends Controller
                 'item_id' => $item->id,
                 'item_title' => $item->title,
             ],
-        ]);
+        ]);*/
 
         // Redirect to the board
         return redirect()->route('boards.show', $board->id)
             ->with('success', 'Item created successfully');
     }
+
+    //public function
+
 }

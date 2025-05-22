@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -56,4 +57,13 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    /**
+     * Get all board comments created by this user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function boardComments(): HasMany
+    {
+        return $this->hasMany(BoardComment::class);
+    }
 }

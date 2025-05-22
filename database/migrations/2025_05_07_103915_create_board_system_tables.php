@@ -87,7 +87,7 @@ return new class extends Migration
         });
 
         // Board Comments Table
-        Schema::create('board_comments', function (Blueprint $table) {
+        Schema::create('board_item_comments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('board_item_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();

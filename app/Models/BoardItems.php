@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BoardItems extends Model
@@ -21,6 +22,7 @@ class BoardItems extends Model
         'votes',
         'status',
         'meta_data',
+        "Priority"
     ];
 
     protected $casts = [
@@ -49,6 +51,16 @@ class BoardItems extends Model
     public function votes()
     {
         return $this->hasMany(BoardItemsVote::class, 'board_item_id');
+    }
+
+     /**
+     * Get all comments associated with this board item.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(BoardComment::class);
     }
 
     /**

@@ -3,7 +3,7 @@ import { User, Clock, Star, Edit, Share, MoreHorizontal, Archive, ExternalLink, 
 import { Menu } from '@headlessui/react'; // assuming you're using this
 
 export default function DataHeader({ data }) {
-  const [isStarred, setIsStarred] = useState(false);
+  const [isStarred, setIsStarred] = useState(true);
 
   const handleStar = () => {
     setIsStarred(prev => !prev);

@@ -109,4 +109,9 @@ class Board extends Model
                     ->withPivot('role')
                     ->withTimestamps();
     }
+
+    public function comments()
+    {
+        //return $this->hasMany();
+    }
 }

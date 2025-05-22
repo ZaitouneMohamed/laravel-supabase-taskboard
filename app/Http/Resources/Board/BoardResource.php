@@ -35,6 +35,7 @@ class BoardResource extends JsonResource
         //$canEdit = Auth::id() === $this->creator_id || $this->members->where('id', Auth::id())->where('pivot.role', 'admin')->exists();
         $canEdit = true;
         $canDelete = Auth::id() === $this->creator_id;
+        $canAddTasks = Auth::id() === $this->creator_id;
 
         return [
             'id' => $this->id,
@@ -90,8 +91,48 @@ class BoardResource extends JsonResource
                     ];
                 });
             }, []),
+            // In your BoardResource class
+            'items_by_status' => $this->when($this->items, function () {
+                // Group items by status
+                $groupedItems = $this->items->groupBy('status');
+
+                // Transform the grouped collection into the desired format
+                $result = [];
+
+                // Create empty arrays for each status, even if there are no items
+                $defaultStatuses = ['todo', 'in-progress', 'done']; // Add all your possible statuses here
+                foreach ($defaultStatuses as $status) {
+                    $result[$status] = [];
+                }
+
+                // Fill with actual items
+                foreach ($groupedItems as $status => $items) {
+                    $result[$status] = $items->map(function ($item) {
+                        return [
+                            'id' => (string) $item->id, // Convert to string to match your example format
+                            'content' => $item->title,  // Renamed from 'title' to 'content' to match example
+                            'description' => $item->description,
+                            'status' => $item->status,
+                            'created_at' => $item->created_at,
+                            'updated_at' => $item->updated_at,
+                            'priority' => $item->Priority ?? 'medium', // Add a priority field, default to medium if not set
+                            'creator' => [
+                                'id' => $item->creator->id ?? null,
+                                'name' => $item->creator->name ?? 'Unknown',
+                            ],
+                            'votes_count' => $item->votes_count ?? 0,
+                            'comments_count' => $item->comments_count ?? 0,
+                            'views_count' => $item->views_count ?? 0,
+                            'is_voted' => Auth::check() ? $item->isVotedBy(Auth::user()) : false,
+                        ];
+                    })->values()->all(); // Use values() to reindex and all() to convert to array
+                }
+
+                return $result;
+            }, []),
             'can_edit' => $canEdit,
             'can_delete' => $canDelete,
+            'canAddTasks' => $canAddTasks,
         ];
     }
 
@@ -103,7 +144,7 @@ class BoardResource extends JsonResource
      */
     protected function isStarredByUser($user)
     {
-        return false;
+        return true;
     }
 
     /**

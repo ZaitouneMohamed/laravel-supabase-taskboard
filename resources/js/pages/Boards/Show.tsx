@@ -37,7 +37,7 @@ export default function Show() {
 
   return (
     <AppLayout title={data.name}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumbs */}
         <div className="flex items-center text-sm text-gray-500 mb-6">
           <Link href="/dashboard" className="hover:text-gray-700">Dashboard</Link>
@@ -94,7 +94,7 @@ export default function Show() {
 
           <Tab.Panels>
             {/* Items Tab */}
-            <ItemTab data={data} />
+            <ItemTab canAddTasks={data.canAddTasks}  MainTasks={data.items_by_status} boardSLug={data.slug} />
 
             <MembersTab data={data} usersToInvite={usersToInvite} />
 
