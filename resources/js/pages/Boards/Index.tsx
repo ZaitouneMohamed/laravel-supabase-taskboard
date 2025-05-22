@@ -52,7 +52,7 @@ export default function Index() {
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
             <p className="text-sm font-medium text-gray-500">Recently Updated</p>
-            <p className="text-2xl font-bold text-blue-600">{stats?.recent || 0}</p>
+            <p className="text-2xl font-bold text-blue-600">{stats?.createAt || 0}</p>
           </div>
         </div>
 
@@ -190,7 +190,7 @@ export default function Index() {
 
                 <div className="mt-4 flex items-center justify-between text-sm">
                   <span className="text-xs text-gray-500">
-                    Updated {board.updated_at}
+                    Created {board.created_at}
                   </span>
                   <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
                     by {board.creator.name}
