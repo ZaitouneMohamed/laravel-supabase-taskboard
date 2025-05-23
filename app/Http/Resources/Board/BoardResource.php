@@ -123,6 +123,7 @@ class BoardResource extends JsonResource
                             'votes_count' => $item->votes_count ?? 0,
                             'comments_count' => $item->comments_count ?? 0,
                             'views_count' => $item->views_count ?? 0,
+                            "tasks" => $item->tasks,
                             'is_voted' => Auth::check() ? $item->isVotedBy(Auth::user()) : false,
                         ];
                     })->values()->all(); // Use values() to reindex and all() to convert to array

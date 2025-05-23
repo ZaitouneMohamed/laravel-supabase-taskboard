@@ -17,9 +17,8 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Clock, CheckCircle, AlertCircle, Plus } from 'lucide-react';
-import { Tab } from '@headlessui/react';
-import CreateBoardItem from '@/pages/Boards/Items/Create';
+import { Clock, CheckCircle, AlertCircle, Plus, X, Check, ChevronDown, ChevronRight, ListTodo, CheckCircle2 } from 'lucide-react';
+import { router, useForm } from '@inertiajs/react';
 
 // Column definitions
 const columns = [
@@ -37,7 +36,6 @@ const PriorityBadge = ({ priority }) => {
         'Urgent': 'bg-purple-100 text-purple-800'
     };
 
-
   return (
     <span className={`text-xs px-2 py-1 rounded-full ${classes[priority]}`}>
       {priority}
@@ -45,45 +43,247 @@ const PriorityBadge = ({ priority }) => {
   );
 };
 
-// Sortable task item component
-const SortableTaskItem = ({ task }) => {
+// Task/Subtask component
+const TaskItem = ({ task, onToggle, onDelete }) => {
+  return (
+    <div className="flex items-center gap-2 py-1 text-sm">
+      <div className="flex-shrink-0">
+        {task.completed ? (
+          <CheckCircle2
+            className="w-4 h-4 text-green-500 cursor-pointer"
+            onClick={() => onToggle(task.id)}
+          />
+        ) : (
+          <div
+            className="w-4 h-4 border-2 border-gray-300 rounded cursor-pointer hover:border-blue-500 transition-colors"
+            onClick={() => onToggle(task.id)}
+          />
+        )}
+      </div>
+      <span className={`flex-1 ${task.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+        {task.title}
+      </span>
+      <button
+        onClick={() => onDelete(task.id)}
+        className="text-gray-400 hover:text-red-500 transition-colors"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  );
+};
+
+// Inline task creator component
+const InlineTaskCreator = ({ onCreateTask, onCancel }) => {
+  const [taskTitle, setTaskTitle] = useState('');
+
+  const handleSubmit = () => {
+    if (taskTitle.trim()) {
+      onCreateTask(taskTitle.trim());
+      setTaskTitle('');
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      onCancel();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  return (
+    <div className="mt-2 p-2 bg-gray-50 rounded border">
+      <input
+        type="text"
+        value={taskTitle}
+        onChange={(e) => setTaskTitle(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Enter task title..."
+        className="w-full p-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+        autoFocus
+      />
+      <div className="flex justify-end gap-1 mt-1">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex items-center px-2 py-1 text-xs text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          <X className="w-3 h-3 mr-1" />
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!taskTitle.trim()}
+          className="flex items-center px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <Check className="w-3 h-3 mr-1" />
+          Add
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Sortable board item component with tasks
+const SortableBoardItem = ({ item, onCreateTask, onToggleTask, onDeleteTask }) => {
+  const [showTasks, setShowTasks] = useState(true);
+  const [showTaskCreator, setShowTaskCreator] = useState(false);
+
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id: task.id });
+  } = useSortable({ id: item.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
+  const tasks = item.tasks || [];
+  const completedTasks = tasks.filter(task => task.completed).length;
+  const totalTasks = tasks.length;
+
+  // Calculate progress based on completed tasks
+  const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const handleCreateTask = (taskTitle) => {
+    onCreateTask(item.id, taskTitle);
+    setShowTaskCreator(false);
+  };
+
+  const handleCancelTaskCreator = () => {
+    setShowTaskCreator(false);
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
       className={`bg-white p-3 mb-3 rounded shadow-sm border-l-4 ${
-        task.priority === 'high' ? 'border-red-500' :
-        task.priority === 'medium' ? 'border-blue-500' : 'border-green-500'
-      } cursor-grab active:cursor-grabbing`}
+        item.priority === 'Urgent' ? 'border-purple-500' :
+        item.priority === 'High' ? 'border-red-500' :
+        item.priority === 'Medium' ? 'border-blue-500' : 'border-green-500'
+      }`}
     >
-      <div className="font-medium mb-2">{task.content}</div>
-      <div className="flex justify-between items-center">
-        <PriorityBadge priority={task.priority} />
-        <div className="text-xs text-gray-500">
-          By: {task.creator.name}
+      {/* Main board item header - draggable area */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing"
+      >
+        <div className="font-medium mb-2">{item.content}</div>
+
+        {/* Progress Bar - only show if there are tasks */}
+        {totalTasks > 0 && (
+          <div className="mb-3">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs text-gray-600">Progress</span>
+              <span className="text-xs font-medium text-gray-700">
+                {(() => {
+                  let emoji = '';
+                  if (progress >= 0 && progress < 20) {
+                    emoji = '😟'; // Worried face for low progress
+                  } else if (progress >= 20 && progress <= 80) {
+                    emoji = '😐'; // Neutral face for medium progress
+                  } else if (progress > 80) {
+                    emoji = '😊'; // Happy face for high progress
+                  }
+                  return `${emoji} ${progress}%`;
+                })()}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all duration-300 ease-in-out ${(() => {
+                  if (progress >= 0 && progress < 20) {
+                    return 'bg-red-500'; // Red for 0-19%
+                  } else if (progress >= 20 && progress <= 80) {
+                    return 'bg-blue-600'; // Blue for 20-80%
+                  } else {
+                    return 'bg-green-500'; // Green for 81-100%
+                  }
+                })()}`}
+                style={{
+                  width: `${progress}%`
+                }}
+              ></div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center">
+          <PriorityBadge priority={item.priority} />
+          <div className="text-xs text-gray-500">
+            By: {item.creator.name}
+          </div>
         </div>
+      </div>
+
+      {/* Tasks section - not draggable */}
+      <div className="mt-3 pt-2 border-t border-gray-100">
+        <div className="flex items-center justify-between mb-2">
+          {totalTasks > 0 ? (
+            <button
+              onClick={() => setShowTasks(!showTasks)}
+              className="flex items-center text-xs text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              {showTasks ? (
+                <ChevronDown className="w-3 h-3 mr-1" />
+              ) : (
+                <ChevronRight className="w-3 h-3 mr-1" />
+              )}
+              Tasks ({completedTasks}/{totalTasks})
+            </button>
+          ) : (
+            <div className="flex items-center text-xs text-gray-400">
+              <ListTodo className="w-3 h-3 mr-1" />
+              No tasks assigned
+            </div>
+          )}
+
+          <button
+            onClick={() => setShowTaskCreator(true)}
+            className="flex items-center text-xs text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Add task
+          </button>
+        </div>
+
+        {/* Show tasks if they exist and are expanded */}
+        {totalTasks > 0 && showTasks && (
+          <div className="space-y-1">
+            {tasks.map(task => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onToggle={(taskId) => onToggleTask(item.id, taskId)}
+                onDelete={(taskId) => onDeleteTask(item.id, taskId)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Inline task creator */}
+        {showTaskCreator && (
+          <InlineTaskCreator
+            onCreateTask={handleCreateTask}
+            onCancel={handleCancelTaskCreator}
+          />
+        )}
       </div>
     </div>
   );
 };
 
 // Droppable column component
-const DroppableColumn = ({ column, tasks = [] }) => {
+const DroppableColumn = ({ column, items = [], onCreateTask, onToggleTask, onDeleteTask }) => {
   // Use the useDroppable hook to make the column a drop target
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${column.id}`,
@@ -104,7 +304,7 @@ const DroppableColumn = ({ column, tasks = [] }) => {
         <column.icon className="mr-2 h-5 w-5" />
         <h2>{column.title}</h2>
         <span className="ml-auto bg-white rounded-full px-2 py-1 text-sm">
-          {tasks.length}
+          {items.length}
         </span>
       </div>
 
@@ -114,21 +314,24 @@ const DroppableColumn = ({ column, tasks = [] }) => {
         className={`min-h-[300px] p-3 transition-all ${dropStyle}`}
       >
         <SortableContext
-          items={tasks.map(task => task.id)}
+          items={items.map(item => item.id)}
           strategy={verticalListSortingStrategy}
         >
-          {tasks.map(task => (
-            <SortableTaskItem
-              key={task.id}
-              task={task}
+          {items.map(item => (
+            <SortableBoardItem
+              key={item.id}
+              item={item}
+              onCreateTask={onCreateTask}
+              onToggleTask={onToggleTask}
+              onDeleteTask={onDeleteTask}
             />
           ))}
         </SortableContext>
 
         {/* Show placeholder text for empty columns */}
-        {tasks.length === 0 && (
+        {items.length === 0 && (
           <div className="h-full min-h-[200px] flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md">
-            <p className="text-gray-400">Drop task here</p>
+            <p className="text-gray-400">Drop item here</p>
           </div>
         )}
       </div>
@@ -136,26 +339,95 @@ const DroppableColumn = ({ column, tasks = [] }) => {
   );
 };
 
-// Default fallback tasks if none provided
-const fallbackTasks = {
-  'todo': [],
-  'in-progress': [],
-  'done': []
+// Sample data matching your Laravel API structure
+const sampleData = {
+  "todo": [
+    {
+      "id": "1",
+      "content": "title here",
+      "description": null,
+      "status": "todo",
+      "priority": "Medium",
+      "creator": {
+        "id": 1,
+        "name": "Scottie Fritsch"
+      },
+      "tasks": [
+        {
+          "id": 1,
+          "board_item_id": 1,
+          "title": "subtask here",
+          "completed": true,
+          "created_at": "2025-05-23T15:04:03.000000Z",
+          "updated_at": "2025-05-23T15:04:08.000000Z"
+        }
+      ]
+    }
+  ],
+  "in-progress": [
+    {
+      "id": "4",
+      "content": "aaaaa",
+      "description": null,
+      "status": "in-progress",
+      "priority": "Medium",
+      "creator": {
+        "id": 1,
+        "name": "Scottie Fritsch"
+      },
+      "tasks": []
+    },
+    {
+      "id": "2",
+      "content": "jajajaj",
+      "description": null,
+      "status": "in-progress",
+      "priority": "Medium",
+      "creator": {
+        "id": 1,
+        "name": "Scottie Fritsch"
+      },
+      "tasks": []
+    }
+  ],
+  "done": [
+    {
+      "id": "6",
+      "content": "ddddd",
+      "description": null,
+      "status": "done",
+      "priority": "Urgent",
+      "creator": {
+        "id": 1,
+        "name": "Scottie Fritsch"
+      },
+      "tasks": []
+    },
+    {
+      "id": "5",
+      "content": "555555",
+      "description": null,
+      "status": "done",
+      "priority": "Medium",
+      "creator": {
+        "id": 1,
+        "name": "Scottie Fritsch"
+      },
+      "tasks": []
+    }
+  ]
 };
 
-// Main task board component
-const ItemTab = ({ MainTasks = fallbackTasks, boardSLug = '' ,canAddTasks = false}) => {
-  // State for modal visibility
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [tasks, setTasks] = useState(MainTasks);
-  const [activeTask, setActiveTask] = useState(null);
+// Main board component
+const ItemTab = ({ MainTasks = sampleData, boardSlug = '', canAddTasks = false }) => {
+  const [items, setItems] = useState(MainTasks);
+  const [activeItem, setActiveItem] = useState(null);
 
   // Use the sensors for drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      // Increase activation constraint to prevent accidental drags
       activationConstraint: {
-        distance: 10, // Require moving at least 10px before drag starts
+        distance: 10,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -163,210 +435,226 @@ const ItemTab = ({ MainTasks = fallbackTasks, boardSLug = '' ,canAddTasks = fals
     })
   );
 
-  // Find which column contains a task
-  const findColumnForTask = (taskId) => {
-    for (const [columnId, columnTasks] of Object.entries(tasks)) {
-      if (columnTasks.find(task => task.id === taskId)) {
+  // Find which column contains an item
+  const findColumnForItem = (itemId) => {
+    for (const [columnId, columnItems] of Object.entries(items)) {
+      if (columnItems.find(item => item.id === itemId)) {
         return columnId;
       }
     }
     return null;
   };
 
-  // This function would eventually be replaced with an API call
-  const updateTaskStatus = (taskId, sourceColumn, destinationColumn) => {
-    console.log(`Task ${taskId} moved from ${sourceColumn} to ${destinationColumn}`);
-    // API call would go here
+const handleCreateTask = async (itemId, taskTitle) => {
+  try {
+    router.post(route('task.store'), {
+      board_item_id: itemId,
+      title: taskTitle,
+    }, {
+          preserveState: false,
+    });
+  } catch (error) {
+    console.error('Error creating task:', error);
+  }
+};
+
+  // Handle toggling task completion
+  const handleToggleTask = async (itemId, taskId) => {
+    try {
+      setItems(prevItems => {
+        const newItems = { ...prevItems };
+
+        // Find the item and toggle the task
+        for (const [columnId, columnItems] of Object.entries(newItems)) {
+          const itemIndex = columnItems.findIndex(item => item.id === itemId);
+          if (itemIndex !== -1) {
+            const item = columnItems[itemIndex];
+            const taskIndex = (item.tasks || []).findIndex(task => task.id === taskId);
+
+            if (taskIndex !== -1) {
+              newItems[columnId] = [...columnItems];
+              newItems[columnId][itemIndex] = {
+                ...item,
+                tasks: item.tasks.map((task, index) =>
+                  index === taskIndex
+                    ? { ...task, completed: !task.completed, updated_at: new Date().toISOString() }
+                    : task
+                )
+              };
+            }
+            break;
+          }
+        }
+
+        return newItems;
+      });
+
+      // TODO: Replace with actual API call
+      console.log(`Toggling task ${taskId} for item ${itemId}`);
+      // Example API call: PATCH /api/tasks/{taskId}
+
+    } catch (error) {
+      console.error('Error toggling task:', error);
+    }
+  };
+
+  // Handle deleting task
+  const handleDeleteTask = async (itemId, taskId) => {
+    try {
+      setItems(prevItems => {
+        const newItems = { ...prevItems };
+
+        // Find the item and remove the task
+        for (const [columnId, columnItems] of Object.entries(newItems)) {
+          const itemIndex = columnItems.findIndex(item => item.id === itemId);
+          if (itemIndex !== -1) {
+            const item = columnItems[itemIndex];
+
+            newItems[columnId] = [...columnItems];
+            newItems[columnId][itemIndex] = {
+              ...item,
+              tasks: (item.tasks || []).filter(task => task.id !== taskId)
+            };
+            break;
+          }
+        }
+
+        return newItems;
+      });
+
+      // TODO: Replace with actual API call
+      console.log(`Deleting task ${taskId} from item ${itemId}`);
+      // Example API call: DELETE /api/tasks/{taskId}
+
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
   };
 
   const handleDragStart = (event) => {
     const { active } = event;
-    const taskId = active.id;
-    const columnId = findColumnForTask(taskId);
+    const itemId = active.id;
+    const columnId = findColumnForItem(itemId);
 
     if (columnId) {
-      const taskData = tasks[columnId].find(task => task.id === taskId);
-      setActiveTask(taskData);
+      const itemData = items[columnId].find(item => item.id === itemId);
+      setActiveItem(itemData);
     }
-  };
-
-  const handleDragOver = (event) => {
-    // Additional drag over logic could go here
   };
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
 
-    setActiveTask(null);
+    setActiveItem(null);
 
-    // If no valid drop target
     if (!over) return;
 
     const activeId = active.id;
-
-    // Find source column
-    const sourceColumnId = findColumnForTask(activeId);
+    const sourceColumnId = findColumnForItem(activeId);
     if (!sourceColumnId) return;
 
-    // Extract column ID from the drop target
-    // This works for both dropping on a column or on another task
     const overId = over.id;
 
-    // Skip processing if dragged and dropped on the same task
     if (activeId === overId) {
-      console.log("Dropped on the same task, no changes needed");
       return;
     }
 
     let destinationColumnId;
 
     if (String(overId).startsWith('column-')) {
-      // Dropped directly on a column
       destinationColumnId = over.data.current.columnId;
     } else {
-      // Dropped on a task, find its column
-      destinationColumnId = findColumnForTask(overId);
+      destinationColumnId = findColumnForItem(overId);
     }
 
     if (!destinationColumnId) return;
 
-    // Create a deep copy of the entire tasks state to avoid reference issues
-    const newTasksState = JSON.parse(JSON.stringify(tasks));
+    const newItemsState = JSON.parse(JSON.stringify(items));
+    const sourceColumnItems = newItemsState[sourceColumnId];
+    const destinationColumnItems = newItemsState[destinationColumnId];
 
-    // Get task arrays for source and destination
-    const sourceColumnTasks = newTasksState[sourceColumnId];
-    const destinationColumnTasks = newTasksState[destinationColumnId];
+    const itemIndex = sourceColumnItems.findIndex(item => item.id === activeId);
+    if (itemIndex === -1) return;
 
-    // Find the task to move
-    const taskIndex = sourceColumnTasks.findIndex(task => task.id === activeId);
-    if (taskIndex === -1) return;
-
-    // Create a copy of the task to move
-    const movedTask = {...sourceColumnTasks[taskIndex]};
-
-    // Remove task from source column
-    sourceColumnTasks.splice(taskIndex, 1);
+    const movedItem = {...sourceColumnItems[itemIndex]};
+    sourceColumnItems.splice(itemIndex, 1);
 
     if (sourceColumnId === destinationColumnId) {
-      // Reordering within the same column
-      const overIndex = destinationColumnTasks.findIndex(task => task.id === overId);
-
+      const overIndex = destinationColumnItems.findIndex(item => item.id === overId);
       if (overIndex !== -1) {
-        // Insert at the position of the task we dropped on
-        destinationColumnTasks.splice(overIndex, 0, movedTask);
+        destinationColumnItems.splice(overIndex, 0, movedItem);
       } else {
-        // Fallback to adding at the end
-        destinationColumnTasks.push(movedTask);
+        destinationColumnItems.push(movedItem);
       }
     } else {
-      // Moving to a different column
-      if (overId === `column-${destinationColumnId}`) {
-        // Dropped directly on the column, add to end
-        destinationColumnTasks.push(movedTask);
-      } else {
-        // Dropped on a task in another column
-        const overIndex = destinationColumnTasks.findIndex(task => task.id === overId);
+      movedItem.status = destinationColumnId;
 
+      if (overId === `column-${destinationColumnId}`) {
+        destinationColumnItems.push(movedItem);
+      } else {
+        const overIndex = destinationColumnItems.findIndex(item => item.id === overId);
         if (overIndex !== -1) {
-          // Insert at the position of the task we dropped on
-          destinationColumnTasks.splice(overIndex, 0, movedTask);
+          destinationColumnItems.splice(overIndex, 0, movedItem);
         } else {
-          // Fallback to adding at the end
-          destinationColumnTasks.push(movedTask);
+          destinationColumnItems.push(movedItem);
         }
       }
 
-      // Log task status update (would be API call in production)
-      updateTaskStatus(activeId, sourceColumnId, destinationColumnId);
+      console.log(`Item ${activeId} moved from ${sourceColumnId} to ${destinationColumnId}`);
+      // TODO: API call to update item status
     }
 
-    // Update state with new task positions
-    setTasks(newTasksState);
+    setItems(newItemsState);
   };
 
   return (
-    <Tab.Panel>
-      <div className="p-6 max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Task Board</h1>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Task Board</h1>
 
-        {canAddTasks && (
-            <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-blue-700 transition"
-            >
-                <Plus className="w-4 h-4 mr-2" />
-                Add New Task
-            </button>
-            )}
-
-
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-          measuring={{
-            droppable: {
-              strategy: MeasuringStrategy.Always
-            }
-          }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            {columns.map(column => (
-              <DroppableColumn
-                key={column.id}
-                column={column}
-                tasks={tasks[column.id] || []}
-              />
-            ))}
-          </div>
-
-          {/* Overlay that follows the cursor during drag */}
-          <DragOverlay>
-            {activeTask ? (
-              <div className={`bg-white p-3 rounded shadow-lg border-l-4 w-64 ${
-                activeTask.priority === 'high' ? 'border-red-500' :
-                activeTask.priority === 'medium' ? 'border-blue-500' : 'border-green-500'
-              } opacity-90`}>
-                <div className="font-medium mb-2">{activeTask.content}</div>
-                <div className="flex justify-between items-center">
-                  <PriorityBadge priority={activeTask.priority} />
-                  <div className="text-xs text-gray-500">
-                    ID: {activeTask.creator.name}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-
-        {/* Debug info */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm">
-          <h3 className="font-bold mb-2">Column Status:</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {columns.map(column => (
-              <div key={column.id} className="p-2 bg-white rounded border">
-                <div className="font-medium">{column.title}</div>
-                <div>Tasks: {(tasks[column.id] || []).length}</div>
-                <div className={!tasks[column.id] || tasks[column.id].length === 0 ? "text-orange-500 font-bold" : "text-green-500"}>
-                  {!tasks[column.id] || tasks[column.id].length === 0 ? "Empty (Still Droppable)" : "Has Items"}
-                </div>
-              </div>
-            ))}
-          </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        measuring={{
+          droppable: {
+            strategy: MeasuringStrategy.Always
+          }
+        }}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          {columns.map(column => (
+            <DroppableColumn
+              key={column.id}
+              column={column}
+              items={items[column.id] || []}
+              onCreateTask={handleCreateTask}
+              onToggleTask={handleToggleTask}
+              onDeleteTask={handleDeleteTask}
+            />
+          ))}
         </div>
-      </div>
 
-      {/* Modal for creating new tasks */}
-      {isCreateModalOpen && (
-        <CreateBoardItem
-          isOpen={isCreateModalOpen}
-          boardSLug={boardSLug}
-          onClose={() => setIsCreateModalOpen(false)}
-        />
-      )}
-    </Tab.Panel>
+        {/* Overlay that follows the cursor during drag */}
+        <DragOverlay>
+          {activeItem ? (
+            <div className={`bg-white p-3 rounded shadow-lg border-l-4 w-64 ${
+              activeItem.priority === 'Urgent' ? 'border-purple-500' :
+              activeItem.priority === 'High' ? 'border-red-500' :
+              activeItem.priority === 'Medium' ? 'border-blue-500' : 'border-green-500'
+            } opacity-90`}>
+              <div className="font-medium mb-2">{activeItem.content}</div>
+              <div className="flex justify-between items-center">
+                <PriorityBadge priority={activeItem.priority} />
+                <div className="text-xs text-gray-500">
+                  By: {activeItem.creator.name}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
   );
 };
 

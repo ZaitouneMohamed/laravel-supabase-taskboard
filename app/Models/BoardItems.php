@@ -63,6 +63,11 @@ class BoardItems extends Model
         return $this->hasMany(BoardComment::class);
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class , 'board_item_id')->latest();
+    }
+
     /**
      * Check if the item is voted by the given user.
      *

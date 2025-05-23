@@ -3,6 +3,7 @@
 use App\Http\Controllers\Dashboard\Board\BoardItemController;
 use App\Http\Controllers\Dashboard\Board\BoardMembersController;
 use App\Http\Controllers\Dashboard\BoardController;
+use App\Http\Controllers\Dashboard\Task\TaskController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -23,7 +24,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::controller(BoardMembersController::class)->name('boards.members.')->group(function() {
         Route::post("inviteMembers/{board}" , "inviteMembers")->name("store");
         Route::delete("deleteMember/{board}" , "deleteMember")->name("delete");
+    });
 
+    // Tasks routes
+    Route::controller(TaskController::class)->name('task.')->prefix("task")->group(function() {
+        Route::post("store" , "store")->name('store');
     });
 });
 

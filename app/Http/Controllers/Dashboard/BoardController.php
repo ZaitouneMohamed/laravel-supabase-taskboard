@@ -7,8 +7,10 @@ use App\Http\Resources\Board\BoardResource;
 use App\Models\Board;
 use App\Models\BoardType;
 use App\Models\Team;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
 
@@ -46,41 +48,52 @@ class BoardController extends Controller
      */
     public function store(Request $request)
     {
-        // Validate the request
-        $validated = $request->validate([
-            'name' => 'required|string|min:3|max:255',
-            'description' => 'nullable|string|max:1000',
-            'status' => 'nullable|string|in:active,draft',
-            'type_id' => 'required|exists:board_types,id',
-            'team_id' => 'nullable|exists:teams,id',
-            'is_private' => 'nullable|boolean',
-            'settings' => 'nullable|array',
-            'template_id' => 'nullable|string',
-        ]);
+        try {
+            // Validate the request
+            $validated = $request->validate([
+                'name' => 'required|string|min:3|max:255',
+                'description' => 'nullable|string|max:1000',
+                'status' => 'nullable|string|in:active,draft',
+                'type_id' => 'required|exists:board_types,id',
+                'team_id' => 'nullable|exists:teams,id',
+                'is_private' => 'nullable|boolean',
+                'settings' => 'nullable|array',
+                'template_id' => 'nullable|string',
+            ]);
 
-        // Create the board
-        $board = Board::create([
-            'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
-            'description' => $validated['description'] ?? null,
-            'status' => $validated['status'] ?? 'active',
-            'type_id' => $validated['type_id'],
-            'team_id' => !empty($validated['team_id']) ? $validated['team_id'] : null,
-            'is_private' => $validated['is_private'] ?? false,
-            'settings' => $validated['settings'] ?? [
-                'enable_voting' => true,
-                'allow_comments' => true,
-                'show_creator' => true,
-            ],
-            'template_id' => $validated['template_id'] ?? null,
-            'creator_id' => auth()->id(),
-        ]);
+            DB::transaction(function () use ($validated) {
+                // Create the board
+                $board = Board::create([
+                    'name' => $validated['name'],
+                    'slug' => Str::slug($validated['name']),
+                    'description' => $validated['description'] ?? null,
+                    'status' => $validated['status'] ?? 'active',
+                    'type_id' => $validated['type_id'],
+                    'team_id' => !empty($validated['team_id']) ? $validated['team_id'] : null,
+                    'is_private' => $validated['is_private'] ?? false,
+                    'settings' => $validated['settings'] ?? [
+                        'enable_voting' => true,
+                        'allow_comments' => true,
+                        'show_creator' => true,
+                    ],
+                    'template_id' => $validated['template_id'] ?? null,
+                    'creator_id' => auth()->id(),
+                ]);
 
-        // Add creator as board member
-        $board->members()->attach(auth()->id(), ['role' => 'owner']);
+                // Add creator as board member
+                $board->members()->attach(auth()->id(), ['role' => 'owner']);
 
-        return redirect()->route('boards.index')
-            ->with('success', 'Board created successfully.');
+                return $board;
+            });
+
+            return redirect()->route('boards.index')
+                ->with('success', 'Board created successfully.');
+
+        } catch (Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'An error occurred while creating the board. Please try again.');
+        }
     }
 
     /**
@@ -119,8 +132,7 @@ class BoardController extends Controller
             })
             ->get();
 
-
-                return Inertia::render('Boards/Show', [
+        return Inertia::render('Boards/Show', [
             'board' => new BoardResource($boards),
             "usersToInvite" => $usersToInvite
         ]);

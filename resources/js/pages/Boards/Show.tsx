@@ -3,20 +3,6 @@ import React, { useState } from 'react';
 import { usePage, Link } from '@inertiajs/react';
 import {
   ChevronRight,
-  Star,
-  Edit,
-  Share,
-  MoreHorizontal,
-  Plus,
-  Clock,
-  User,
-  Eye,
-  Archive,
-  Trash2,
-  ExternalLink,
-  AlertTriangle,
-  MessageSquare,
-  CheckCircle
 } from 'lucide-react';
 import DataHeader from './components/show/dataHeader';
 import AppLayout from '@/layouts/app-layout';
