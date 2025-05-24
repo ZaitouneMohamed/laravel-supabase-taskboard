@@ -33,7 +33,7 @@ BoardFlow is a feature-rich, flexible board management platform designed to help
 
 ## 🖼️ Screenshots
 
-### 🔹 Dashboard – Your Project Overview  
+### 🔹 Dashboard – Project Overview  
 Get a clear snapshot of active boards, tasks, and progress.
 
 ![BoardFlow Dashboard](assets/dashboard.png)
