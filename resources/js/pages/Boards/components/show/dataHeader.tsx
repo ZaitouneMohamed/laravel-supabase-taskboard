@@ -3,12 +3,6 @@ import { User, Clock, Star, Edit, Share, MoreHorizontal, Archive, ExternalLink, 
 import { Menu } from '@headlessui/react'; // assuming you're using this
 
 export default function DataHeader({ data }) {
-  const [isStarred, setIsStarred] = useState(true);
-
-  const handleStar = () => {
-    setIsStarred(prev => !prev);
-  };
-
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString();
@@ -49,13 +43,6 @@ export default function DataHeader({ data }) {
         </div>
 
         <div className="flex items-start gap-2">
-          <button
-            onClick={handleStar}
-            className={`p-2 rounded-full ${isStarred ? 'text-yellow-500' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            <Star className="w-5 h-5" fill={isStarred ? "currentColor" : "none"} />
-          </button>
-
           {data.can_edit && (
             <a
               href={`/boards/${data.id}/edit`}

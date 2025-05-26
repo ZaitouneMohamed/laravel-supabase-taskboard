@@ -16,4 +16,17 @@ class TaskController extends Controller
         ]);
         return redirect()->back();
     }
+
+    public function delete(Task $task)
+    {
+        $task->delete();
+        return redirect()->back();
+    }
+
+    public function toogleTask(Task $task)
+    {
+        $task->completed = !$task->completed;
+        $task->save();
+        return redirect()->back();
+    }
 }

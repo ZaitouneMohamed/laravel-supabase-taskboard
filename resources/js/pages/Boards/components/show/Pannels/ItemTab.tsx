@@ -44,31 +44,44 @@ const PriorityBadge = ({ priority }) => {
 };
 
 // Task/Subtask component
-const TaskItem = ({ task, onToggle, onDelete }) => {
+const TaskItem = ({ task, onToggle, onDelete , hasPermission}) => {
   return (
     <div className="flex items-center gap-2 py-1 text-sm">
       <div className="flex-shrink-0">
-        {task.completed ? (
-          <CheckCircle2
-            className="w-4 h-4 text-green-500 cursor-pointer"
-            onClick={() => onToggle(task.id)}
-          />
-        ) : (
-          <div
-            className="w-4 h-4 border-2 border-gray-300 rounded cursor-pointer hover:border-blue-500 transition-colors"
-            onClick={() => onToggle(task.id)}
-          />
-        )}
+        {
+            hasPermission ? (
+                <>
+                    {task.completed ? (
+                    <CheckCircle2
+                        className="w-4 h-4 text-green-500 cursor-pointer"
+                        onClick={() => onToggle(task.id)}
+                    />
+                    ) : (
+                    <div
+                        className="w-4 h-4 border-2 border-gray-300 rounded cursor-pointer hover:border-blue-500 transition-colors"
+                        onClick={() => onToggle(task.id)}
+                    />
+                    )}
+                </>
+            ):(
+                <></>
+            )
+        }
       </div>
-      <span className={`flex-1 ${task.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+      <span className={`flex-1 ${task.completed ? 'text-green-700' : 'text-gray-700'}`}>
         {task.title}
       </span>
-      <button
-        onClick={() => onDelete(task.id)}
-        className="text-gray-400 hover:text-red-500 transition-colors"
-      >
-        <X className="w-3 h-3" />
-      </button>
+      { hasPermission ? (
+        <button
+            onClick={() => onDelete(task.id)}
+            className="text-gray-400 hover:text-red-500 transition-colors"
+        >
+            <X className="w-3 h-3" />
+        </button>
+            ):(
+                <></>
+            )
+      }
     </div>
   );
 };
@@ -129,7 +142,7 @@ const InlineTaskCreator = ({ onCreateTask, onCancel }) => {
 
 // Sortable board item component with tasks
 const SortableBoardItem = ({ item, onCreateTask, onToggleTask, onDeleteTask }) => {
-  const [showTasks, setShowTasks] = useState(true);
+  const [showTasks, setShowTasks] = useState(false);
   const [showTaskCreator, setShowTaskCreator] = useState(false);
 
   const {
@@ -247,13 +260,20 @@ const SortableBoardItem = ({ item, onCreateTask, onToggleTask, onDeleteTask }) =
             </div>
           )}
 
-          <button
-            onClick={() => setShowTaskCreator(true)}
-            className="flex items-center text-xs text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            Add task
-          </button>
+
+          {item.canAddTask ? (
+            <button
+                onClick={() => setShowTaskCreator(true)}
+                className="flex items-center text-xs text-blue-600 hover:text-blue-800 transition-colors"
+            >
+                <Plus className="w-3 h-3 mr-1" />
+                Add task
+            </button>
+
+            ):(
+                <></>
+
+            )}
         </div>
 
         {/* Show tasks if they exist and are expanded */}
@@ -261,10 +281,11 @@ const SortableBoardItem = ({ item, onCreateTask, onToggleTask, onDeleteTask }) =
           <div className="space-y-1">
             {tasks.map(task => (
               <TaskItem
+                hasPermission={item.canAddTask}
                 key={task.id}
                 task={task}
-                onToggle={(taskId) => onToggleTask(item.id, taskId)}
-                onDelete={(taskId) => onDeleteTask(item.id, taskId)}
+                onToggle={(taskId) => onToggleTask(taskId)}
+                onDelete={(taskId) => onDeleteTask(taskId)}
               />
             ))}
           </div>
@@ -459,76 +480,27 @@ const handleCreateTask = async (itemId, taskTitle) => {
 };
 
   // Handle toggling task completion
-  const handleToggleTask = async (itemId, taskId) => {
+  const handleToggleTask = async (taskId) => {
     try {
-      setItems(prevItems => {
-        const newItems = { ...prevItems };
-
-        // Find the item and toggle the task
-        for (const [columnId, columnItems] of Object.entries(newItems)) {
-          const itemIndex = columnItems.findIndex(item => item.id === itemId);
-          if (itemIndex !== -1) {
-            const item = columnItems[itemIndex];
-            const taskIndex = (item.tasks || []).findIndex(task => task.id === taskId);
-
-            if (taskIndex !== -1) {
-              newItems[columnId] = [...columnItems];
-              newItems[columnId][itemIndex] = {
-                ...item,
-                tasks: item.tasks.map((task, index) =>
-                  index === taskIndex
-                    ? { ...task, completed: !task.completed, updated_at: new Date().toISOString() }
-                    : task
-                )
-              };
-            }
-            break;
-          }
-        }
-
-        return newItems;
-      });
-
-      // TODO: Replace with actual API call
-      console.log(`Toggling task ${taskId} for item ${itemId}`);
-      // Example API call: PATCH /api/tasks/{taskId}
-
+        router.put(route('task.toogleTask' , taskId), {
+            preserveState: false,
+        });
     } catch (error) {
-      console.error('Error toggling task:', error);
+        console.error('Error creating task:', error);
     }
   };
 
   // Handle deleting task
-  const handleDeleteTask = async (itemId, taskId) => {
+  const handleDeleteTask = async (taskId) => {
     try {
-      setItems(prevItems => {
-        const newItems = { ...prevItems };
-
-        // Find the item and remove the task
-        for (const [columnId, columnItems] of Object.entries(newItems)) {
-          const itemIndex = columnItems.findIndex(item => item.id === itemId);
-          if (itemIndex !== -1) {
-            const item = columnItems[itemIndex];
-
-            newItems[columnId] = [...columnItems];
-            newItems[columnId][itemIndex] = {
-              ...item,
-              tasks: (item.tasks || []).filter(task => task.id !== taskId)
-            };
-            break;
-          }
-        }
-
-        return newItems;
-      });
-
-      // TODO: Replace with actual API call
-      console.log(`Deleting task ${taskId} from item ${itemId}`);
-      // Example API call: DELETE /api/tasks/{taskId}
-
+        router.delete(route('task.delete' , taskId) ,
+        {
+            preserveState: false,
+        });
     } catch (error) {
-      console.error('Error deleting task:', error);
+        console.error('Error creating task:', error);
     }
+
   };
 
   const handleDragStart = (event) => {

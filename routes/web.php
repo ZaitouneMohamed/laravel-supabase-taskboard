@@ -23,12 +23,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //
     Route::controller(BoardMembersController::class)->name('boards.members.')->group(function() {
         Route::post("inviteMembers/{board}" , "inviteMembers")->name("store");
-        Route::delete("deleteMember/{board}" , "deleteMember")->name("delete");
+        Route::delete("deleteMember/{board}/{user}" , "deleteMember")->name("delete");
     });
 
     // Tasks routes
     Route::controller(TaskController::class)->name('task.')->prefix("task")->group(function() {
         Route::post("store" , "store")->name('store');
+        Route::delete("delete/{task}" , "delete")->name('delete');
+        Route::put("toogleTask/{task}" , "toogleTask")->name('toogleTask');
     });
 });
 

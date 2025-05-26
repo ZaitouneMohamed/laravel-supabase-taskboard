@@ -8,7 +8,7 @@ export default function InviteMembersModal({ isOpen, onClose, boardSLug, usersTo
   const [selectedUsers, setSelectedUsers] = useState([]);
 
 
-    const { data, setData, errors, post, processing, reset } = useForm({
+    const { setData, errors, post, processing, reset } = useForm({
        user_ids: [],
     });
 

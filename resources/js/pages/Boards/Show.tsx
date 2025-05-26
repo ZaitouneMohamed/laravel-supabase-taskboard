@@ -80,9 +80,14 @@ export default function Show() {
 
           <Tab.Panels>
             {/* Items Tab */}
-            <ItemTab canAddTasks={data.canAddTasks}  MainTasks={data.items_by_status} boardSLug={data.slug} />
+            <Tab.Panel>
+                <ItemTab canAddTasks={data.canAddTasks}  MainTasks={data.items_by_status} boardSLug={data.slug} />
+            </Tab.Panel>
 
-            <MembersTab data={data} usersToInvite={usersToInvite} />
+            <Tab.Panel>
+                <MembersTab data={data} usersToInvite={usersToInvite} />
+            </Tab.Panel>
+
 
             {/* Activity Tab */}
             <Tab.Panel>

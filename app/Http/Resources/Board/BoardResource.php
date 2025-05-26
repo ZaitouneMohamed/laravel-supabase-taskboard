@@ -109,13 +109,13 @@ class BoardResource extends JsonResource
                 foreach ($groupedItems as $status => $items) {
                     $result[$status] = $items->map(function ($item) {
                         return [
-                            'id' => (string) $item->id, // Convert to string to match your example format
-                            'content' => $item->title,  // Renamed from 'title' to 'content' to match example
+                            'id' => (string) $item->id,
+                            'content' => $item->title,
                             'description' => $item->description,
                             'status' => $item->status,
                             'created_at' => $item->created_at,
                             'updated_at' => $item->updated_at,
-                            'priority' => $item->Priority ?? 'medium', // Add a priority field, default to medium if not set
+                            'priority' => $item->Priority ?? 'medium',
                             'creator' => [
                                 'id' => $item->creator->id ?? null,
                                 'name' => $item->creator->name ?? 'Unknown',
@@ -124,6 +124,7 @@ class BoardResource extends JsonResource
                             'comments_count' => $item->comments_count ?? 0,
                             'views_count' => $item->views_count ?? 0,
                             "tasks" => $item->tasks,
+                            "canAddTask" => Auth::user()->id === $this->creator_id || Auth::id() === $item->creator_id,
                             'is_voted' => Auth::check() ? $item->isVotedBy(Auth::user()) : false,
                         ];
                     })->values()->all(); // Use values() to reindex and all() to convert to array

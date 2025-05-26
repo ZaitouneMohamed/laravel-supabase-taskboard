@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard\Board;
 
 use App\Http\Controllers\Controller;
 use App\Models\Board;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -28,14 +29,11 @@ class BoardMembersController extends Controller
         ]);
     }
 
-    public function deleteMember(Board $board , Request $request)
+    public function deleteMember(Board $board , User $user)
     {
-        abort_if($board->creator_id !== Auth::id(), 403, "You cant't add member" . $board->creator->name);
-        $request->validate([
-            'user_ids' => 'required|array',
-        ]);
-
-        $board->members()->detach($request->iser_id);
+        abort_if($board->creator_id !== Auth::id(), 403, "You cant't delete member" . $board->creator->name);
+        dd($user);
+        $board->members()->detach($user);
 
          return redirect()->back()->with([
             "success" => "member detached with success"
