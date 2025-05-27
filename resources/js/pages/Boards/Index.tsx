@@ -1,10 +1,43 @@
 // resources/js/Pages/Boards/Index.jsx
 import React, { useState } from 'react';
 import { usePage, Link } from '@inertiajs/react';
-import { BadgeCheck, Archive, Search, Filter, Plus, Grid3x3, ViewList } from 'lucide-react';
+import { BadgeCheck, Archive, Search, Filter, Plus, Grid3x3, List, ArrowRight } from 'lucide-react';
 import { BreadcrumbItem } from '@/types';
 import AppLayout from '@/layouts/app-layout';
 import { Transition } from '@headlessui/react';
+import { cn } from '@/lib/utils';
+
+interface Board {
+  id: number;
+  name: string;
+  description: string;
+  status: 'active' | 'archived';
+  created_at: string;
+  updated_at: string;
+  creator: {
+    name: string;
+  };
+}
+
+interface BoardStats {
+  total: number;
+  active: number;
+  archived: number;
+  recentlyUpdated: number;
+}
+
+interface PageProps {
+  boards: {
+    data: Board[];
+    links: {
+      url: string | null;
+      label: string;
+      active: boolean;
+    }[];
+  };
+  stats: BoardStats;
+  [key: string]: unknown;
+}
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -15,11 +48,11 @@ const breadcrumbs: BreadcrumbItem[] = [
     title: 'Boards',
     href: '/boards',
     current: true,
-  },
+  } as BreadcrumbItem & { current: boolean },
 ];
 
 export default function Index() {
-  const { boards, stats } = usePage().props;
+  const { boards, stats } = usePage<PageProps>().props;
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -36,54 +69,61 @@ export default function Index() {
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-            <p className="text-sm font-medium text-gray-500">Total Boards</p>
-            <p className="text-2xl font-bold text-gray-900">{stats?.total || boards.data.length}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-            <p className="text-sm font-medium text-gray-500">Active Boards</p>
-            <p className="text-2xl font-bold text-green-600">{stats?.active || boards.data.filter(b => b.status === 'active').length}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-            <p className="text-sm font-medium text-gray-500">Archived</p>
-            <p className="text-2xl font-bold text-gray-600">{stats?.archived || boards.data.filter(b => b.status === 'archived').length}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-            <p className="text-sm font-medium text-gray-500">Recently Updated</p>
-            <p className="text-2xl font-bold text-blue-600">{stats?.createAt || 0}</p>
-          </div>
-        </div>
-
         {/* Header and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">My Boards</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900">
+              My Boards
+            </h1>
+            <span className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded-full">
+              {filteredBoards.length} total
+            </span>
+          </div>
+
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-gray-200' : 'hover:bg-gray-100'}`}
-              aria-label="Grid view"
-            >
-              <Grid3x3 className="w-5 h-5 text-gray-700" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-gray-200' : 'hover:bg-gray-100'}`}
-              aria-label="List view"
-            >
-              <Grid3x3 className="w-5 h-5 text-gray-700" />
-            </button>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1 flex gap-1">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  "p-2 rounded-md transition-all duration-200",
+                  viewMode === 'grid'
+                    ? "bg-gray-100 text-gray-900"
+                    : "hover:bg-gray-50 text-gray-600"
+                )}
+                aria-label="Grid view"
+              >
+                <Grid3x3 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  "p-2 rounded-md transition-all duration-200",
+                  viewMode === 'list'
+                    ? "bg-gray-100 text-gray-900"
+                    : "hover:bg-gray-50 text-gray-600"
+                )}
+                aria-label="List view"
+              >
+                <List className="w-5 h-5" />
+              </button>
+            </div>
+
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`p-2 rounded-md ${showFilters ? 'bg-gray-200' : 'hover:bg-gray-100'}`}
+              className={cn(
+                "p-2 rounded-lg border transition-all duration-200",
+                showFilters
+                  ? "bg-gray-100 text-gray-900 border-gray-300"
+                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              )}
               aria-label="Toggle filters"
             >
-              <Filter className="w-5 h-5 text-gray-700" />
+              <Filter className="w-5 h-5" />
             </button>
+
             <Link
               href="/boards/create"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition flex items-center gap-2"
+              className="bg-gray-900 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-gray-800 transition-all duration-300 flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>New Board</span>
@@ -99,8 +139,8 @@ export default function Index() {
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Search boards..."
+              className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-all duration-200"
+              placeholder="Search boards by name or description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -108,26 +148,32 @@ export default function Index() {
 
           <Transition
             show={showFilters}
-            enter="transition ease-out duration-100"
-            enterFrom="transform opacity-0 scale-95"
-            enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-75"
-            leaveFrom="transform opacity-100 scale-100"
-            leaveTo="transform opacity-0 scale-95"
+            enter="transition ease-out duration-200"
+            enterFrom="opacity-0 -translate-y-1"
+            enterTo="opacity-100 translate-y-0"
+            leave="transition ease-in duration-150"
+            leaveFrom="opacity-100 translate-y-0"
+            leaveTo="opacity-0 -translate-y-1"
           >
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="font-medium text-gray-700 mb-3">Filter by Status</h3>
+              <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                Filter by Status
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {['all', 'active', 'archived'].map((status) => (
                   <button
                     key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                    onClick={() => setStatusFilter(status as typeof statusFilter)}
+                    className={cn(
+                      "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                       statusFilter === status
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                        : 'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200'
-                    }`}
+                        ? "bg-gray-100 text-gray-900 border border-gray-300"
+                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                    )}
                   >
+                    {status === 'active' && <BadgeCheck className="w-4 h-4 mr-1.5 inline-block" />}
+                    {status === 'archived' && <Archive className="w-4 h-4 mr-1.5 inline-block" />}
                     {status.charAt(0).toUpperCase() + status.slice(1)}
                   </button>
                 ))}
@@ -138,8 +184,8 @@ export default function Index() {
 
         {/* Empty State */}
         {filteredBoards.length === 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-4">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 text-gray-600 mb-4">
               <Archive className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-1">No boards found</h3>
@@ -150,7 +196,7 @@ export default function Index() {
             </p>
             <Link
               href="/boards/create"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create a board
@@ -165,22 +211,26 @@ export default function Index() {
               <Link
                 href={`/boards/${board.id}`}
                 key={board.id}
-                className="bg-white rounded-xl shadow-sm hover:shadow-md transition border p-5 flex flex-col justify-between group"
+                className="group relative bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 p-6 flex flex-col justify-between overflow-hidden"
               >
-                <div className="space-y-2">
+                {/* Hover effect */}
+                <div className="absolute inset-0 bg-gray-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                <div className="relative space-y-4">
                   <div className="flex items-start justify-between">
-                    <h2 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition">
+                    <h2 className="text-xl font-semibold text-gray-900 group-hover:text-gray-700 transition-colors duration-300">
                       {board.name}
                     </h2>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    <span className={cn(
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
                       board.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                    )}>
                       {board.status === 'active' ? (
-                        <BadgeCheck className="w-3 h-3 mr-1" />
+                        <BadgeCheck className="w-3.5 h-3.5 mr-1" />
                       ) : (
-                        <Archive className="w-3 h-3 mr-1" />
+                        <Archive className="w-3.5 h-3.5 mr-1" />
                       )}
                       {board.status.charAt(0).toUpperCase() + board.status.slice(1)}
                     </span>
@@ -188,13 +238,27 @@ export default function Index() {
                   <p className="text-sm text-gray-600 line-clamp-3">{board.description}</p>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between text-sm">
-                  <span className="text-xs text-gray-500">
-                    Created {board.created_at}
+                <div className="relative mt-6 flex items-center justify-between text-sm">
+                  <span className="flex items-center text-xs text-gray-500">
+                    <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {board.created_at}
                   </span>
-                  <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                    by {board.creator.name}
+                  <span className="flex items-center text-xs bg-gray-50 text-gray-700 px-2.5 py-1 rounded-full">
+                    <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {board.creator.name}
                   </span>
+                </div>
+
+                {/* Arrow indicator on hover */}
+                <div className={cn(
+                  "absolute right-4 bottom-4 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center",
+                  "transform translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300"
+                )}>
+                  <ArrowRight className="w-4 h-4 text-gray-600" />
                 </div>
               </Link>
             ))}
@@ -203,10 +267,10 @@ export default function Index() {
 
         {/* List View */}
         {filteredBoards.length > 0 && viewMode === 'list' && (
-          <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
+              <thead>
+                <tr className="bg-gray-50">
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Name
                   </th>
@@ -221,13 +285,17 @@ export default function Index() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200">
                 {filteredBoards.map((board) => (
-                  <tr key={board.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => window.location.href = `/boards/${board.id}`}>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <tr
+                    key={board.id}
+                    className="group hover:bg-gray-50 cursor-pointer transition-colors duration-200"
+                    onClick={() => window.location.href = `/boards/${board.id}`}
+                  >
+                    <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 group-hover:text-gray-700 transition-colors duration-200">
                             {board.name}
                           </div>
                           <div className="text-sm text-gray-500 line-clamp-1 max-w-xs">
@@ -237,24 +305,35 @@ export default function Index() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      <span className={cn(
+                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
                         board.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      )}>
                         {board.status === 'active' ? (
-                          <BadgeCheck className="w-3 h-3 mr-1" />
+                          <BadgeCheck className="w-3.5 h-3.5 mr-1" />
                         ) : (
-                          <Archive className="w-3 h-3 mr-1" />
+                          <Archive className="w-3.5 h-3.5 mr-1" />
                         )}
                         {board.status.charAt(0).toUpperCase() + board.status.slice(1)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {board.creator.name}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-500">
+                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        {board.creator.name}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {board.updated_at}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-500">
+                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {board.updated_at}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -274,7 +353,7 @@ export default function Index() {
                     href={link.url}
                     className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                       link.active
-                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                        ? 'z-10 bg-gray-100 border-gray-300 text-gray-900'
                         : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                     } ${i === 0 ? 'rounded-l-md' : ''} ${
                       i === boards.links.length - 1 ? 'rounded-r-md' : ''

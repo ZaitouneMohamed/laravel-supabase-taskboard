@@ -30,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::controller(TaskController::class)->name('task.')->prefix("task")->group(function() {
         Route::post("store" , "store")->name('store');
         Route::delete("delete/{task}" , "delete")->name('delete');
+        Route::put('/tasks/{task}', 'update')->name('update');
         Route::put("toogleTask/{task}" , "toogleTask")->name('toogleTask');
     });
 });

@@ -45,43 +45,94 @@ const PriorityBadge = ({ priority }) => {
 
 // Task/Subtask component
 const TaskItem = ({ task, onToggle, onDelete , hasPermission}) => {
+    const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(task.title);
+
+  const handleSubmit = () => {
+    if (editedTitle.trim() && editedTitle !== task.title) {
+      router.put(route('task.update', task.id), {
+        title: editedTitle
+      }, {
+        preserveState: false,
+      });
+    }
+    setIsEditing(false);
+  };
+  const handleCancel = () => {
+    setEditedTitle(task.title);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      handleCancel();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
   return (
     <div className="flex items-center gap-2 py-1 text-sm">
       <div className="flex-shrink-0">
-        {
-            hasPermission ? (
-                <>
-                    {task.completed ? (
-                    <CheckCircle2
-                        className="w-4 h-4 text-green-500 cursor-pointer"
-                        onClick={() => onToggle(task.id)}
-                    />
-                    ) : (
-                    <div
-                        className="w-4 h-4 border-2 border-gray-300 rounded cursor-pointer hover:border-blue-500 transition-colors"
-                        onClick={() => onToggle(task.id)}
-                    />
-                    )}
-                </>
-            ):(
-                <></>
-            )
-        }
+      {hasPermission ? (
+          <>
+            {task.completed ? (
+              <CheckCircle2
+                className="w-4 h-4 text-green-500 cursor-pointer"
+                onClick={() => onToggle(task.id)}
+              />
+            ) : (
+              <div
+                className="w-4 h-4 border-2 border-gray-300 rounded cursor-pointer hover:border-blue-500 transition-colors"
+                onClick={() => onToggle(task.id)}
+              />
+            )}
+          </>
+        ) : (
+          <></>
+        )}
       </div>
-      <span className={`flex-1 ${task.completed ? 'text-green-700' : 'text-gray-700'}`}>
-        {task.title}
-      </span>
-      { hasPermission ? (
-        <button
-            onClick={() => onDelete(task.id)}
-            className="text-gray-400 hover:text-red-500 transition-colors"
-        >
+
+      {isEditing ? (
+        <div className="flex-1 flex items-center gap-2">
+          <input
+            type="text"
+            value={editedTitle}
+            onChange={(e) => setEditedTitle(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            autoFocus
+          />
+          <button
+            onClick={handleSubmit}
+            className="p-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            <Check className="w-3 h-3" />
+          </button>
+          <button
+            onClick={handleCancel}
+            className="p-1 text-xs bg-gray-200 text-gray-600 rounded hover:bg-gray-300"
+          >
             <X className="w-3 h-3" />
-        </button>
-            ):(
-                <></>
-            )
-      }
+          </button>
+        </div>
+      ) : (
+        <span
+          className={`flex-1 ${task.completed ? 'text-green-700' : 'text-gray-700'} ${hasPermission ? 'cursor-pointer hover:text-blue-600' : ''}`}
+          onClick={() => hasPermission && setIsEditing(true)}
+        >
+          {task.title}
+        </span>
+      )}
+      {hasPermission && !isEditing ? (
+        <button onClick={() => onDelete(task.id)}
+        className="text-gray-400 hover:text-red-500 transition-colors"
+      >
+         <X className="w-3 h-3" />
+         </button>
+          ) : null}
+
+
     </div>
   );
 };
@@ -482,11 +533,11 @@ const handleCreateTask = async (itemId, taskTitle) => {
   // Handle toggling task completion
   const handleToggleTask = async (taskId) => {
     try {
-        router.put(route('task.toogleTask' , taskId), {
-            preserveState: false,
-        });
+      router.put(route('task.toogleTask', taskId), {}, {
+        preserveState: false,
+      });
     } catch (error) {
-        console.error('Error creating task:', error);
+      console.error('Error toggling task:', error);
     }
   };
 

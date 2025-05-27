@@ -17,6 +17,14 @@ class TaskController extends Controller
         return redirect()->back();
     }
 
+    public function update(Request $request, Task $task)
+    {
+        $task->update([
+            'title' => $request->title,
+        ]);
+        return redirect()->back();
+    }
+
     public function delete(Task $task)
     {
         $task->delete();
