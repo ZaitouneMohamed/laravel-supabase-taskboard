@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Board\BoardResource;
 use App\Models\Board;
+use App\Models\BoardItems;
 use App\Models\BoardType;
 use App\Models\Team;
 use Exception;

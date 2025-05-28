@@ -622,9 +622,12 @@ const handleCreateTask = async (itemId, taskTitle) => {
           destinationColumnItems.push(movedItem);
         }
       }
-
-      console.log(`Item ${activeId} moved from ${sourceColumnId} to ${destinationColumnId}`);
-      // TODO: API call to update item status
+      // Make API call to update item status
+      router.put(route('boardItem.switchBoardStatus', activeId), {
+        status: destinationColumnId,
+      }, {
+        preserveState: false,
+      });
     }
 
     setItems(newItemsState);

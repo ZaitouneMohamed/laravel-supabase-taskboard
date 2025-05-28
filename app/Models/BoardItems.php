@@ -22,7 +22,7 @@ class BoardItems extends Model
         'votes',
         'status',
         'meta_data',
-        "Priority"
+        'priority'
     ];
 
     protected $casts = [

@@ -17,6 +17,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
     //
     Route::resource("boards" , BoardController::class);
+    //
+    Route::controller(BoardItemController::class)->name('boardItem.')->group(function() {
+        Route::put("switchBoardStatus/{boardItem}" , "switchBoardStatus")->name("switchBoardStatus");
+    });
     //x
     Route::get("boards/{board}/items/create" , [BoardItemController::class , "create"]);
     Route::post("boards/items/store" , [BoardItemController::class , "store"])->name("boards.items.store");

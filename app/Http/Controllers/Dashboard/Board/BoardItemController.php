@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard\Board;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Board\BoardResource;
 use App\Models\Board;
+use App\Models\BoardItems;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -88,6 +89,22 @@ class BoardItemController extends Controller
             ->with('success', 'Item created successfully');
     }
 
-    //public function
+    public function switchBoardStatus(BoardItems $boardItem, Request $request)
+    {
+        // Validate the request
+        $request->validate([
+            'status' => 'required|string|in:todo,in-progress,done'
+        ]);
+
+        try {
+            $updated = $boardItem->update([
+                'status' => $request->status,
+            ]);
+
+            $this->returnBackWithSuccess("Board status updated successfully");
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error updating status: ' . $e->getMessage()], 500);
+        }
+    }
 
 }

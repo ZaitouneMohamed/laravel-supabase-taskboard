@@ -18,4 +18,14 @@ abstract class Controller
             "data" => $data
         ],$statusCode);
     }
+
+    function returnBackWithSuccess($message = "response with ok" , $data = [])
+    {
+        return redirect()->back()->with('success', $message)->with('data', $data);
+    }
+
+    function returnBackWithError($message = "please try again" , $data = [])
+    {
+        return redirect()->back()->with('error', $message)->with('data', $data);
+    }
 }
