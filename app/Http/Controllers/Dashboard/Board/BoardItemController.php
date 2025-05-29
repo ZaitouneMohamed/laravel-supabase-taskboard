@@ -67,9 +67,9 @@ class BoardItemController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'] ?? 'todo',
-            'priority' => $validated['priority'] ?? 'medium',
+            'Priority' => 'medium',
             'due_date' => $validated['due_date'] ?? null,
-            'assignee_id' => $validated['assignee_id'] ?? null,
+            'assignee_id' => $validated['assignee_id'] ?? 1,
             'creator_id' => Auth::id(),
         ]);
 

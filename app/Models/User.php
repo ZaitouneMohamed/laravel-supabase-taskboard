@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -22,6 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'description',
+        'status',
     ];
 
     /**
@@ -65,5 +68,20 @@ class User extends Authenticatable
     public function boardComments(): HasMany
     {
         return $this->hasMany(BoardComment::class);
+    }
+
+    public static function getData($params = [])
+    {
+        $query = self::query();
+
+        if (isset($params['search'])) {
+            $search = $params['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        return $query->latest()->paginate($params['per_page'] ?? 12);
     }
 }

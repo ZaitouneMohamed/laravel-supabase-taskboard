@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutDashboard, KanbanSquare, BookOpen, GithubIcon } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, BookOpen, GithubIcon, Users, PanelsTopLeft, UsersRoundIcon } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -18,20 +18,18 @@ const mainNavItems: NavItem[] = [
         href: '/boards',
         icon: KanbanSquare,
     },
+    {
+        title: 'Users',
+        href: '/user',
+        icon: Users,
+    },
+    {
+        title: 'Teams',
+        href: '/team',
+        icon: UsersRoundIcon,
+    },
 ];
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: GithubIcon,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-];
 
 export function AppSidebar() {
     return (
@@ -53,7 +51,6 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

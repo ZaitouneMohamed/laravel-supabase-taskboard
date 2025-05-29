@@ -4,6 +4,8 @@ use App\Http\Controllers\Dashboard\Board\BoardItemController;
 use App\Http\Controllers\Dashboard\Board\BoardMembersController;
 use App\Http\Controllers\Dashboard\BoardController;
 use App\Http\Controllers\Dashboard\Task\TaskController;
+use App\Http\Controllers\Dashboard\TeamController;
+use App\Http\Controllers\Dashboard\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -22,7 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put("switchBoardStatus/{boardItem}" , "switchBoardStatus")->name("switchBoardStatus");
     });
     //x
-    Route::get("boards/{board}/items/create" , [BoardItemController::class , "create"]);
+    Route::get("boards/{board}/items/create" , [BoardItemController::class , "boards.items.create"]);
     Route::post("boards/items/store" , [BoardItemController::class , "store"])->name("boards.items.store");
     //
     Route::controller(BoardMembersController::class)->name('boards.members.')->group(function() {
@@ -37,6 +39,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/tasks/{task}', 'update')->name('update');
         Route::put("toogleTask/{task}" , "toogleTask")->name('toogleTask');
     });
+    // params controller
+    Route::resource("user" , UserController::class);
+    Route::resource("team" , TeamController::class);
 });
 
 require __DIR__.'/settings.php';

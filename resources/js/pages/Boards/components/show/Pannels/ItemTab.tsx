@@ -8,7 +8,10 @@ import {
   useSensors,
   DragOverlay,
   useDroppable,
-  MeasuringStrategy
+  MeasuringStrategy,
+  DragStartEvent,
+  DragEndEvent,
+  UniqueIdentifier
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -18,23 +21,74 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Clock, CheckCircle, AlertCircle, Plus, X, Check, ChevronDown, ChevronRight, ListTodo, CheckCircle2 } from 'lucide-react';
-import { router, useForm } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
+
+interface Column {
+  id: string;
+  title: string;
+  color: string;
+  icon: React.ComponentType<any>;
+}
+
+interface Task {
+  id: number;
+  board_item_id: number;
+  title: string;
+  completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Creator {
+  id: number;
+  name: string;
+}
+
+interface BoardItem {
+  id: string;
+  content: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  creator: Creator;
+  tasks: Task[];
+  canAddTask?: boolean;
+}
+
+interface MainTasksData {
+  todo: BoardItem[];
+  'in-progress': BoardItem[];
+  done: BoardItem[];
+  [key: string]: BoardItem[];
+}
+
+interface ItemTabProps {
+  MainTasks?: MainTasksData;
+  boardSlug?: string;
+  canAddTasks: boolean;
+}
+
+const sampleData: MainTasksData = {
+  todo: [],
+  'in-progress': [],
+  done: [],
+};
 
 // Column definitions
-const columns = [
+const columns: Column[] = [
   { id: 'todo', title: 'To Do', color: 'bg-blue-100', icon: AlertCircle },
   { id: 'in-progress', title: 'In Progress', color: 'bg-yellow-100', icon: Clock },
   { id: 'done', title: 'Done', color: 'bg-green-100', icon: CheckCircle }
 ];
 
 // Priority badge component
-const PriorityBadge = ({ priority }) => {
-    const classes = {
-        'Low': 'bg-green-100 text-green-800',
-        'Medium': 'bg-blue-100 text-blue-800',
-        'High': 'bg-red-100 text-red-800',
-        'Urgent': 'bg-purple-100 text-purple-800'
-    };
+const PriorityBadge = ({ priority }: { priority: string }) => {
+  const classes: Record<string, string> = {
+    'Low': 'bg-green-100 text-green-800',
+    'Medium': 'bg-blue-100 text-blue-800',
+    'High': 'bg-red-100 text-red-800',
+    'Urgent': 'bg-purple-100 text-purple-800'
+  };
 
   return (
     <span className={`text-xs px-2 py-1 rounded-full ${classes[priority]}`}>
@@ -44,8 +98,15 @@ const PriorityBadge = ({ priority }) => {
 };
 
 // Task/Subtask component
-const TaskItem = ({ task, onToggle, onDelete , hasPermission}) => {
-    const [isEditing, setIsEditing] = useState(false);
+interface TaskItemProps {
+  task: Task;
+  onToggle: (id: number) => void;
+  onDelete: (id: number) => void;
+  hasPermission: boolean;
+}
+
+const TaskItem = ({ task, onToggle, onDelete, hasPermission }: TaskItemProps) => {
+  const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task.title);
 
   const handleSubmit = () => {
@@ -138,7 +199,12 @@ const TaskItem = ({ task, onToggle, onDelete , hasPermission}) => {
 };
 
 // Inline task creator component
-const InlineTaskCreator = ({ onCreateTask, onCancel }) => {
+interface InlineTaskCreatorProps {
+  onCreateTask: (title: string) => void;
+  onCancel: () => void;
+}
+
+const InlineTaskCreator = ({ onCreateTask, onCancel }: InlineTaskCreatorProps) => {
   const [taskTitle, setTaskTitle] = useState('');
 
   const handleSubmit = () => {
@@ -148,7 +214,7 @@ const InlineTaskCreator = ({ onCreateTask, onCancel }) => {
     }
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onCancel();
     } else if (e.key === 'Enter') {
@@ -192,7 +258,14 @@ const InlineTaskCreator = ({ onCreateTask, onCancel }) => {
 };
 
 // Sortable board item component with tasks
-const SortableBoardItem = ({ item, onCreateTask, onToggleTask, onDeleteTask }) => {
+interface SortableBoardItemProps {
+  item: BoardItem;
+  onCreateTask: (itemId: string, title: string) => void;
+  onToggleTask: (taskId: number) => void;
+  onDeleteTask: (taskId: number) => void;
+}
+
+const SortableBoardItem = ({ item, onCreateTask, onToggleTask, onDeleteTask }: SortableBoardItemProps) => {
   const [showTasks, setShowTasks] = useState(false);
   const [showTaskCreator, setShowTaskCreator] = useState(false);
 
@@ -210,13 +283,12 @@ const SortableBoardItem = ({ item, onCreateTask, onToggleTask, onDeleteTask }) =
   };
 
   const tasks = item.tasks || [];
-  const completedTasks = tasks.filter(task => task.completed).length;
+  const completedTasks = tasks.filter((task: Task) => task.completed).length;
   const totalTasks = tasks.length;
 
-  // Calculate progress based on completed tasks
   const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const handleCreateTask = (taskTitle) => {
+  const handleCreateTask = (taskTitle: string) => {
     onCreateTask(item.id, taskTitle);
     setShowTaskCreator(false);
   };
@@ -355,7 +427,15 @@ const SortableBoardItem = ({ item, onCreateTask, onToggleTask, onDeleteTask }) =
 };
 
 // Droppable column component
-const DroppableColumn = ({ column, items = [], onCreateTask, onToggleTask, onDeleteTask }) => {
+interface DroppableColumnProps {
+  column: Column;
+  items: BoardItem[];
+  onCreateTask: (itemId: string, title: string) => void;
+  onToggleTask: (taskId: number) => void;
+  onDeleteTask: (taskId: number) => void;
+}
+
+const DroppableColumn = ({ column, items = [], onCreateTask, onToggleTask, onDeleteTask }: DroppableColumnProps) => {
   // Use the useDroppable hook to make the column a drop target
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${column.id}`,
@@ -411,129 +491,24 @@ const DroppableColumn = ({ column, items = [], onCreateTask, onToggleTask, onDel
   );
 };
 
-// Sample data matching your Laravel API structure
-const sampleData = {
-  "todo": [
-    {
-      "id": "1",
-      "content": "title here",
-      "description": null,
-      "status": "todo",
-      "priority": "Medium",
-      "creator": {
-        "id": 1,
-        "name": "Scottie Fritsch"
-      },
-      "tasks": [
-        {
-          "id": 1,
-          "board_item_id": 1,
-          "title": "subtask here",
-          "completed": true,
-          "created_at": "2025-05-23T15:04:03.000000Z",
-          "updated_at": "2025-05-23T15:04:08.000000Z"
-        }
-      ]
-    }
-  ],
-  "in-progress": [
-    {
-      "id": "4",
-      "content": "aaaaa",
-      "description": null,
-      "status": "in-progress",
-      "priority": "Medium",
-      "creator": {
-        "id": 1,
-        "name": "Scottie Fritsch"
-      },
-      "tasks": []
-    },
-    {
-      "id": "2",
-      "content": "jajajaj",
-      "description": null,
-      "status": "in-progress",
-      "priority": "Medium",
-      "creator": {
-        "id": 1,
-        "name": "Scottie Fritsch"
-      },
-      "tasks": []
-    }
-  ],
-  "done": [
-    {
-      "id": "6",
-      "content": "ddddd",
-      "description": null,
-      "status": "done",
-      "priority": "Urgent",
-      "creator": {
-        "id": 1,
-        "name": "Scottie Fritsch"
-      },
-      "tasks": []
-    },
-    {
-      "id": "5",
-      "content": "555555",
-      "description": null,
-      "status": "done",
-      "priority": "Medium",
-      "creator": {
-        "id": 1,
-        "name": "Scottie Fritsch"
-      },
-      "tasks": []
-    }
-  ]
-};
+const ItemTab = ({
+  MainTasks = sampleData,
+  boardSlug = '',
+  canAddTasks = false
+}: ItemTabProps) => {
+  const [items, setItems] = useState<MainTasksData>(MainTasks);
+  const [activeItem, setActiveItem] = useState<BoardItem | null>(null);
 
-// Main board component
-const ItemTab = ({ MainTasks = sampleData, boardSlug = '', canAddTasks = false }) => {
-  const [items, setItems] = useState(MainTasks);
-  const [activeItem, setActiveItem] = useState(null);
-
-  // Use the sensors for drag and drop
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 10,
-      },
-    }),
+    useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
-  // Find which column contains an item
-  const findColumnForItem = (itemId) => {
-    for (const [columnId, columnItems] of Object.entries(items)) {
-      if (columnItems.find(item => item.id === itemId)) {
-        return columnId;
-      }
-    }
-    return null;
-  };
-
-const handleCreateTask = async (itemId, taskTitle) => {
-  try {
-    router.post(route('task.store'), {
-      board_item_id: itemId,
-      title: taskTitle,
-    }, {
-          preserveState: false,
-    });
-  } catch (error) {
-    console.error('Error creating task:', error);
-  }
-};
-
-  // Handle toggling task completion
-  const handleToggleTask = async (taskId) => {
+  const handleToggleTask = async (taskId: number) => {
     try {
-      router.put(route('task.toogleTask', taskId), {}, {
+      router.post(route('task.toggle', { id: taskId }), {}, {
         preserveState: false,
       });
     } catch (error) {
@@ -541,101 +516,115 @@ const handleCreateTask = async (itemId, taskTitle) => {
     }
   };
 
-  // Handle deleting task
-  const handleDeleteTask = async (taskId) => {
+  const handleDeleteTask = async (taskId: number) => {
     try {
-        router.delete(route('task.delete' , taskId) ,
-        {
-            preserveState: false,
-        });
+      router.delete(route('task.destroy', { id: taskId }), {
+        preserveState: false,
+      });
     } catch (error) {
-        console.error('Error creating task:', error);
+      console.error('Error deleting task:', error);
     }
-
   };
 
-  const handleDragStart = (event) => {
+  const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const itemId = active.id;
-    const columnId = findColumnForItem(itemId);
-
-    if (columnId) {
-      const itemData = items[columnId].find(item => item.id === itemId);
-      setActiveItem(itemData);
-    }
+    const activeItem = Object.values(items)
+      .flat()
+      .find((item: BoardItem) => item.id === active.id.toString());
+    setActiveItem(activeItem || null);
   };
 
-  const handleDragEnd = (event) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    setActiveItem(null);
+    if (over && active.id !== over.id) {
+      const activeColumnId = findColumnForItem(active.id.toString());
+      const overColumnId = over.id.toString();
 
-    if (!over) return;
+      if (activeColumnId && (overColumnId === 'todo' || overColumnId === 'in-progress' || overColumnId === 'done')) {
+        const activeItems = [...(items[activeColumnId] || [])];
+        const overItems = [...(items[overColumnId] || [])];
 
-    const activeId = active.id;
-    const sourceColumnId = findColumnForItem(activeId);
-    if (!sourceColumnId) return;
+        const activeIndex = activeItems.findIndex((item: BoardItem) => item.id === active.id.toString());
+        const overIndex = overItems.findIndex((item: BoardItem) => item.id === over.id.toString());
 
-    const overId = over.id;
+        if (activeColumnId === overColumnId) {
+          // Reordering within the same column
+          const newItems = [...activeItems];
+          const [movedItem] = newItems.splice(activeIndex, 1);
+          newItems.splice(overIndex, 0, movedItem);
 
-    if (activeId === overId) {
-      return;
-    }
-
-    let destinationColumnId;
-
-    if (String(overId).startsWith('column-')) {
-      destinationColumnId = over.data.current.columnId;
-    } else {
-      destinationColumnId = findColumnForItem(overId);
-    }
-
-    if (!destinationColumnId) return;
-
-    const newItemsState = JSON.parse(JSON.stringify(items));
-    const sourceColumnItems = newItemsState[sourceColumnId];
-    const destinationColumnItems = newItemsState[destinationColumnId];
-
-    const itemIndex = sourceColumnItems.findIndex(item => item.id === activeId);
-    if (itemIndex === -1) return;
-
-    const movedItem = {...sourceColumnItems[itemIndex]};
-    sourceColumnItems.splice(itemIndex, 1);
-
-    if (sourceColumnId === destinationColumnId) {
-      const overIndex = destinationColumnItems.findIndex(item => item.id === overId);
-      if (overIndex !== -1) {
-        destinationColumnItems.splice(overIndex, 0, movedItem);
-      } else {
-        destinationColumnItems.push(movedItem);
-      }
-    } else {
-      movedItem.status = destinationColumnId;
-
-      if (overId === `column-${destinationColumnId}`) {
-        destinationColumnItems.push(movedItem);
-      } else {
-        const overIndex = destinationColumnItems.findIndex(item => item.id === overId);
-        if (overIndex !== -1) {
-          destinationColumnItems.splice(overIndex, 0, movedItem);
+          const updatedItems: MainTasksData = {
+            ...items,
+            [activeColumnId]: newItems,
+          };
+          setItems(updatedItems);
         } else {
-          destinationColumnItems.push(movedItem);
+          // Moving to a different column
+          const [movedItem] = activeItems.splice(activeIndex, 1);
+          overItems.splice(overIndex, 0, { ...movedItem, status: overColumnId });
+
+          const updatedItems: MainTasksData = {
+            ...items,
+            [activeColumnId]: activeItems,
+            [overColumnId]: overItems,
+          };
+          setItems(updatedItems);
+
+          // Update the item's status on the server
+          try {
+            router.post(route('boards.items.update-status', { id: active.id }), {
+              status: overColumnId,
+            }, {
+              preserveState: false,
+            });
+          } catch (error) {
+            console.error('Error updating item status:', error);
+          }
         }
       }
-      // Make API call to update item status
-      router.put(route('boardItem.switchBoardStatus', activeId), {
-        status: destinationColumnId,
+    }
+
+    setActiveItem(null);
+  };
+
+  // Find which column contains an item
+  const findColumnForItem = (itemId: string) => {
+    for (const [columnId, columnItems] of Object.entries(items)) {
+      if (columnItems.find((item: BoardItem) => item.id === itemId)) {
+        return columnId;
+      }
+    }
+    return null;
+  };
+
+  const handleCreateTask = async (itemId: string, taskTitle: string) => {
+    try {
+      router.post(route('task.store'), {
+        board_item_id: itemId,
+        title: taskTitle,
       }, {
         preserveState: false,
       });
+    } catch (error) {
+      console.error('Error creating task:', error);
     }
-
-    setItems(newItemsState);
   };
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Task Board</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Task Board</h1>
+        {canAddTasks && (
+          <button
+            onClick={() => router.visit(route('boards.items.create', { board: boardSlug }))}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add New Item
+          </button>
+        )}
+      </div>
 
       <DndContext
         sensors={sensors}

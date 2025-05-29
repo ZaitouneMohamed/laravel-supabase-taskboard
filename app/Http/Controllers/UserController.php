@@ -2,19 +2,29 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\User\StoreRequest;
 use App\Models\User;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Inertia\Inertia;
 
 class UserController extends Controller
 {
-    public function index(Request $request)
+    public function create()
     {
-        return User::latest()->paginate(5);
+        return Inertia::render('users/Create');
     }
 
-    public function processUser(Request $request)
+    public function store(StoreRequest $request)
     {
-        $user = User::find($request->userId);
-        return response()->json(['success' => true, 'user' => $user]);
+        $validated = $request->validated();
+
+        // Hash the password
+        $validated['password'] = Hash::make($validated['password']);
+
+        // Create the user
+        User::create($validated);
+
+        return redirect()->route('user.index')
+            ->with('success', 'User created successfully.');
     }
 }
